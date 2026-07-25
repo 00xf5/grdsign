@@ -1,0 +1,12 @@
+{
+  "name": "benchute",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev:auth": "npm run dev -w @benchute/auth-client",
+    "dev:mail": "npm run dev -w @benchute/mail-host",
+    "build:auth": "npm run build -w @benchute/auth-client",
+    "build:mail": "npm run build -w @benchute/mail-host",
+    "db:migrate": "npm run migrate -w @benchute/db"
+  }
+}
