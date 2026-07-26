@@ -70,6 +70,30 @@ export default function HomePage() {
           Open Benchute mail
         </a>
       </p>
+
+      <p
+        style={{
+          marginTop: 32,
+          fontSize: 12,
+          color: "#999",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
+        <a href="/terms" style={{ color: "#666" }}>
+          Terms
+        </a>
+        <a href="/privacy" style={{ color: "#666" }}>
+          Privacy
+        </a>
+        <a href="/support" style={{ color: "#666" }}>
+          Support
+        </a>
+        <a href="/notes" style={{ color: "#666" }}>
+          Notes
+        </a>
+      </p>
     </main>
   );
 }
