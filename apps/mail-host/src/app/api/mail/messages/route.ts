@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  resolveOwnerUserId,
-  gmailClient,
-  outlookClient,
-  ensureMigrated,
-} from "@/lib/mail";
+import { getMailStack } from "@/lib/mail";
 import { AuthGrantError, headerMap, parseFrom, formatMailDate } from "@benchute/mail";
+
+export const dynamic = "force-dynamic";
 
 function clamp(raw: string | null, fallback: number, min: number, max: number): number {
   const n = Number(raw);
@@ -15,6 +12,8 @@ function clamp(raw: string | null, fallback: number, min: number, max: number): 
 
 export async function GET(req: NextRequest) {
   try {
+    const { ensureMigrated, resolveOwnerUserId, gmailClient, outlookClient } =
+      getMailStack();
     await ensureMigrated();
 
     const { searchParams } = new URL(req.url);
@@ -41,7 +40,6 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Google
     const gmailQ = q?.trim() ? q : "in:inbox";
     const list = await gmailClient.listMessages(userId, {
       q: gmailQ,

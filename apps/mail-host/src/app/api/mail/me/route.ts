@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
-import { resolveOwnerUserId, userRepo, grantRepo, ensureMigrated } from "@/lib/mail";
+import { getMailStack } from "@/lib/mail";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    const { ensureMigrated, resolveOwnerUserId, userRepo, grantRepo } =
+      getMailStack();
     await ensureMigrated();
 
     const userId = await resolveOwnerUserId();

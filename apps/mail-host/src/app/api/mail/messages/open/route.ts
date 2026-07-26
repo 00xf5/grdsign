@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  resolveOwnerUserId,
-  gmailClient,
-  outlookClient,
-  ensureMigrated,
-} from "@/lib/mail";
+import { getMailStack } from "@/lib/mail";
 import { AuthGrantError, headerMap, parseFrom, formatMailDate } from "@benchute/mail";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
+    const { ensureMigrated, resolveOwnerUserId, gmailClient, outlookClient } =
+      getMailStack();
     await ensureMigrated();
 
     const { searchParams } = new URL(req.url);
@@ -29,7 +28,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(detail);
     }
 
-    // Google
     const detail = await gmailClient.getMessageDetail(userId, id);
     const h = detail.headers;
     const fromRaw = h.from ?? null;

@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  resolveOwnerUserId,
-  userRepo,
-  gmailClient,
-  outlookClient,
-  ensureMigrated,
-} from "@/lib/mail";
+import { getMailStack } from "@/lib/mail";
 import { AuthGrantError, buildRawMime } from "@benchute/mail";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
+    const { ensureMigrated, resolveOwnerUserId, userRepo, gmailClient, outlookClient } =
+      getMailStack();
     await ensureMigrated();
 
-    const body = await req.json() as Record<string, unknown>;
+    const body = (await req.json()) as Record<string, unknown>;
     const provider = typeof body.provider === "string" ? body.provider : "google";
     const to = typeof body.to === "string" ? body.to.trim() : "";
     const subject = typeof body.subject === "string" ? body.subject.trim() : "";
@@ -53,7 +51,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, id: sent.id, threadId: sent.id });
     }
 
-    // Google
     if (!to.includes("@") && !replyToMessageId) {
       return NextResponse.json({ error: "invalid_to" }, { status: 400 });
     }

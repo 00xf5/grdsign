@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  resolveOwnerUserId,
-  gmailClient,
-  outlookClient,
-  ensureMigrated,
-} from "@/lib/mail";
+import { getMailStack } from "@/lib/mail";
 import { AuthGrantError } from "@benchute/mail";
+
+export const dynamic = "force-dynamic";
 
 const ALLOWED_ACTIONS = [
   "trash",
@@ -23,9 +20,11 @@ function isMailAction(v: unknown): v is MailAction {
 
 export async function POST(req: NextRequest) {
   try {
+    const { ensureMigrated, resolveOwnerUserId, gmailClient, outlookClient } =
+      getMailStack();
     await ensureMigrated();
 
-    const body = await req.json() as Record<string, unknown>;
+    const body = (await req.json()) as Record<string, unknown>;
     const provider = typeof body.provider === "string" ? body.provider : "google";
     const id = typeof body.id === "string" ? body.id.trim() : "";
     const action = body.action;
@@ -55,7 +54,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Google
     let result: { id: string; threadId: string; labelIds?: string[] };
 
     switch (action) {

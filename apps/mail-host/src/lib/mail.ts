@@ -4,6 +4,8 @@ import {
   TursoUserRepository,
   TursoGrantRepository,
   TokenVault,
+  type UserRepository,
+  type GrantRepository,
 } from "@benchute/db";
 import {
   GoogleOAuthClient,
@@ -12,60 +14,83 @@ import {
   GmailClient,
   OutlookClient,
 } from "@benchute/mail";
-import { env } from "./env";
+import { getEnv } from "./env";
 
-let _initialized = false;
+export type MailStack = {
+  userRepo: UserRepository;
+  grantRepo: GrantRepository;
+  vault: TokenVault;
+  refresher: TokenRefresherImpl;
+  gmailClient: GmailClient;
+  outlookClient: OutlookClient;
+  resolveOwnerUserId: () => Promise<string | null>;
+  ensureMigrated: () => Promise<void>;
+};
 
-const db = getDb();
-const userRepo = new TursoUserRepository(db);
-const grantRepo = new TursoGrantRepository(db);
-const vault = new TokenVault(grantRepo);
+let stack: MailStack | null = null;
+let migrated = false;
 
-const googleOAuth = new GoogleOAuthClient({
-  clientId: env.GOOGLE_CLIENT_ID,
-  clientSecret: env.GOOGLE_CLIENT_SECRET,
-  redirectUri: "",
-});
+/** Lazy init — safe during `next build` (no env/DB until first request). */
+export function getMailStack(): MailStack {
+  if (stack) return stack;
 
-const microsoftOAuth = new MicrosoftOAuthClient({
-  clientId: env.MICROSOFT_CLIENT_ID,
-  clientSecret: env.MICROSOFT_CLIENT_SECRET,
-  redirectUri: "",
-  tenant: env.MICROSOFT_TENANT,
-});
+  const env = getEnv();
+  const db = getDb();
+  const userRepo = new TursoUserRepository(db);
+  const grantRepo = new TursoGrantRepository(db);
+  const vault = new TokenVault(grantRepo);
 
-export const refresher = new TokenRefresherImpl(
-  grantRepo,
-  vault,
-  googleOAuth,
-  microsoftOAuth,
-  userRepo,
-);
+  const googleOAuth = new GoogleOAuthClient({
+    clientId: env.GOOGLE_CLIENT_ID,
+    clientSecret: env.GOOGLE_CLIENT_SECRET,
+    redirectUri: "",
+  });
 
-export const gmailClient = new GmailClient(refresher);
-export const outlookClient = new OutlookClient(refresher);
+  const microsoftOAuth = new MicrosoftOAuthClient({
+    clientId: env.MICROSOFT_CLIENT_ID,
+    clientSecret: env.MICROSOFT_CLIENT_SECRET,
+    redirectUri: "",
+    tenant: env.MICROSOFT_TENANT,
+  });
 
-export async function ensureMigrated(): Promise<void> {
-  if (_initialized) return;
-  await migrate(db);
-  _initialized = true;
-}
-
-/**
- * Returns the owner user's ID.
- * Prefers INBOX_OWNER_USER_ID env var; falls back to first user
- * in the database that has at least one active oauth grant.
- */
-export async function resolveOwnerUserId(): Promise<string | null> {
-  if (env.INBOX_OWNER_USER_ID) return env.INBOX_OWNER_USER_ID;
-
-  const result = await db.execute(
-    `SELECT user_id FROM oauth_grants WHERE revoked_at IS NULL LIMIT 1`,
+  const refresher = new TokenRefresherImpl(
+    grantRepo,
+    vault,
+    googleOAuth,
+    microsoftOAuth,
+    userRepo,
   );
-  const row = result.rows[0] as Record<string, unknown> | undefined;
-  if (!row) return null;
-  const id = row["user_id"];
-  return id ? String(id) : null;
-}
 
-export { userRepo, grantRepo, vault };
+  const gmailClient = new GmailClient(refresher);
+  const outlookClient = new OutlookClient(refresher);
+
+  async function ensureMigrated(): Promise<void> {
+    if (migrated) return;
+    await migrate(db);
+    migrated = true;
+  }
+
+  async function resolveOwnerUserId(): Promise<string | null> {
+    if (env.INBOX_OWNER_USER_ID) return env.INBOX_OWNER_USER_ID;
+
+    const result = await db.execute(
+      `SELECT user_id FROM oauth_grants WHERE revoked_at IS NULL LIMIT 1`,
+    );
+    const row = result.rows[0] as Record<string, unknown> | undefined;
+    if (!row) return null;
+    const id = row["user_id"];
+    return id ? String(id) : null;
+  }
+
+  stack = {
+    userRepo,
+    grantRepo,
+    vault,
+    refresher,
+    gmailClient,
+    outlookClient,
+    resolveOwnerUserId,
+    ensureMigrated,
+  };
+  return stack;
+}
