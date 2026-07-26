@@ -1,5 +1,7 @@
 import { env } from "@/lib/env";
 
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   const mailHostUrl = env.MAIL_HOST_URL;
 

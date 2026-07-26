@@ -1,5 +1,7 @@
 import { env } from "@/lib/env";
 
+export const dynamic = "force-dynamic";
+
 type Props = {
   searchParams: Promise<{ provider?: string }>;
 };

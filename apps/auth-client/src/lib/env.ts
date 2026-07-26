@@ -36,20 +36,31 @@ function loadEnv(): Env {
   return parsed.data;
 }
 
-export const env = loadEnv();
+let cached: Env | null = null;
+
+export function getEnv(): Env {
+  if (!cached) cached = loadEnv();
+  return cached;
+}
+
+export const env: Env = new Proxy({} as Env, {
+  get(_t, prop: string | symbol) {
+    return getEnv()[prop as keyof Env];
+  },
+});
 
 function parseScopeList(raw: string): string[] {
   return [...new Set(raw.split(/\s+/).map((s) => s.trim()).filter(Boolean))];
 }
 
 export function googleScopes(): string[] {
-  return parseScopeList(env.GOOGLE_SCOPES);
+  return parseScopeList(getEnv().GOOGLE_SCOPES);
 }
 
 export function microsoftScopes(): string[] {
-  return parseScopeList(env.MICROSOFT_SCOPES);
+  return parseScopeList(getEnv().MICROSOFT_SCOPES);
 }
 
 export function microsoftAuthority(): string {
-  return `https://login.microsoftonline.com/${env.MICROSOFT_TENANT}`;
+  return `https://login.microsoftonline.com/${getEnv().MICROSOFT_TENANT}`;
 }

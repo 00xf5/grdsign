@@ -19,4 +19,17 @@ function loadEnv(): DbEnv {
   return parsed.data;
 }
 
-export const env = loadEnv();
+let cached: DbEnv | null = null;
+
+/** Lazy — safe during `next build` until a route actually needs DB. */
+export function getEnv(): DbEnv {
+  if (!cached) cached = loadEnv();
+  return cached;
+}
+
+/** Back-compat accessor; does not validate until a property is read. */
+export const env: DbEnv = new Proxy({} as DbEnv, {
+  get(_t, prop: string | symbol) {
+    return getEnv()[prop as keyof DbEnv];
+  },
+});

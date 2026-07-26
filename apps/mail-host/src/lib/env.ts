@@ -16,4 +16,26 @@ const schema = z.object({
   MICROSOFT_TENANT: z.string().default("common"),
 });
 
-export const env = schema.parse(process.env);
+export type MailHostEnv = z.infer<typeof schema>;
+
+let cached: MailHostEnv | null = null;
+
+export function getEnv(): MailHostEnv {
+  if (!cached) {
+    const parsed = schema.safeParse(process.env);
+    if (!parsed.success) {
+      const details = parsed.error.issues
+        .map((i) => `${i.path.join(".")}: ${i.message}`)
+        .join("\n");
+      throw new Error(`Invalid environment:\n${details}`);
+    }
+    cached = parsed.data;
+  }
+  return cached;
+}
+
+export const env: MailHostEnv = new Proxy({} as MailHostEnv, {
+  get(_t, prop: string | symbol) {
+    return getEnv()[prop as keyof MailHostEnv];
+  },
+});
