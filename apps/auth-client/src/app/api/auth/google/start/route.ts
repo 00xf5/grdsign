@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { randomUrlSafe } from "@benchute/db";
 import { getServices } from "@/lib/services";
-import { decodeUserCookie, USER_COOKIE_NAME } from "@/lib/session";
 import { env, googleScopes } from "@/lib/env";
+import { resolveLinkUserId } from "@/lib/linkUser";
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const userCookieRaw = cookieStore.get(USER_COOKIE_NAME)?.value ?? null;
-    const linkUserId = userCookieRaw ? decodeUserCookie(userCookieRaw) : null;
+    const linkUserId = await resolveLinkUserId();
 
     const state = randomUrlSafe(24);
     const codeVerifier = randomUrlSafe(64);

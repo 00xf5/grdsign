@@ -21,6 +21,9 @@ const envSchema = z.object({
 
   TURSO_DATABASE_URL: z.string().min(1),
   TURSO_AUTH_TOKEN: z.string().optional().default(""),
+
+  /** When set, every OAuth connect attaches mailboxes to this Turso users.id */
+  INBOX_OWNER_USER_ID: z.string().optional().default(""),
 });
 
 export type Env = z.infer<typeof envSchema>;

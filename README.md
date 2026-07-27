@@ -20,6 +20,17 @@ Register OAuth redirects for local auth-client:
 - `http://localhost:3000/api/auth/google/callback`
 - `http://localhost:3000/api/auth/microsoft/callback`
 
+## Inbox centralization (temporary) — FIX LATER
+
+**Current behavior (intentional hack):** mail-host treats the deployment as **single-tenant**. On each mail API request it reassigns every active `oauth_grants` row to one owner user (`INBOX_OWNER_USER_ID`, or the most recently updated grant’s `user_id`). That way a newly connected Gmail/Outlook appears in `/inbox` even if OAuth created a separate Turso user.
+
+**FIX LATER (talk about this):**
+- Proper multi-user / multi-tenant inbox (session ↔ user, no cross-user grant moves)
+- Auth-client must always `linkUserId` to the signed-in Benchute user (or pinned owner) instead of merging in mail-host
+- Remove `centralizeInboxGrants()` from [`apps/mail-host/src/lib/mail.ts`](apps/mail-host/src/lib/mail.ts)
+
+Until then: set `INBOX_OWNER_USER_ID` on mail-host (and optionally auth-client) when you know the canonical user id.
+
 ---
 
 ## Legacy Vite + Express (deprecated)

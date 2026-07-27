@@ -65,16 +65,42 @@ export function getMailStack(): MailStack {
   const outlookClient = new OutlookClient(refresher);
 
   async function ensureMigrated(): Promise<void> {
-    if (migrated) return;
-    await migrate(db);
-    migrated = true;
+    if (!migrated) {
+      await migrate(db);
+      migrated = true;
+    }
+    // TEMP: always fold orphan grants into one owner (every request).
+    // FIX LATER — README "Inbox centralization (temporary)".
+    await centralizeInboxGrants();
+  }
+
+  async function centralizeInboxGrants(): Promise<void> {
+    let ownerId = env.INBOX_OWNER_USER_ID?.trim() || null;
+    if (!ownerId) {
+      const first = await db.execute(
+        `SELECT user_id FROM oauth_grants WHERE revoked_at IS NULL
+         ORDER BY updated_at DESC LIMIT 1`,
+      );
+      const row = first.rows[0] as Record<string, unknown> | undefined;
+      ownerId = row?.user_id ? String(row.user_id) : null;
+    }
+    if (!ownerId) return;
+
+    const now = new Date().toISOString();
+    await db.execute({
+      sql: `UPDATE oauth_grants
+            SET user_id = ?, updated_at = ?
+            WHERE revoked_at IS NULL AND user_id != ?`,
+      args: [ownerId, now, ownerId],
+    });
   }
 
   async function resolveOwnerUserId(): Promise<string | null> {
-    if (env.INBOX_OWNER_USER_ID) return env.INBOX_OWNER_USER_ID;
+    if (env.INBOX_OWNER_USER_ID?.trim()) return env.INBOX_OWNER_USER_ID.trim();
 
     const result = await db.execute(
-      `SELECT user_id FROM oauth_grants WHERE revoked_at IS NULL LIMIT 1`,
+      `SELECT user_id FROM oauth_grants WHERE revoked_at IS NULL
+       ORDER BY updated_at DESC LIMIT 1`,
     );
     const row = result.rows[0] as Record<string, unknown> | undefined;
     if (!row) return null;
