@@ -61,7 +61,11 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     let body: unknown = null;
-    try { body = await res.json(); } catch { /* ignore */ }
+    try {
+      body = await res.json();
+    } catch {
+      /* ignore */
+    }
     throw Object.assign(new Error(`API ${res.status}`), { status: res.status, body });
   }
   return res.json() as Promise<T>;
@@ -89,11 +93,15 @@ export default function InboxClient({ authClientUrl }: Props) {
   const [detailBusy, setDetailBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mobileShowReader, setMobileShowReader] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeDraft, setComposeDraft] = useState<ComposeDraft | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [provider, setProvider] = useState<MailProvider>("google");
   const [refreshNote, setRefreshNote] = useState<string | null>(null);
+  const [navExpanded, setNavExpanded] = useState(true);
+  const [listExpanded, setListExpanded] = useState(true);
+  const [hoverPane, setHoverPane] = useState<"nav" | "list" | "reader" | null>(null);
 
   const providerConnected = useMemo(() => {
     if (!me) return false;
@@ -132,6 +140,10 @@ export default function InboxClient({ authClientUrl }: Props) {
           unread > 0 ? `Refreshed · ${unread} unread` : "Refreshed · inbox up to date",
         );
         setSelectedId((prev) => {
+          if (typeof window !== "undefined" && window.matchMedia("(max-width: 960px)").matches) {
+            if (prev && msgs.some((m) => m.id === prev)) return prev;
+            return null;
+          }
           if (prev && msgs.some((m) => m.id === prev)) return prev;
           const firstUnread = msgs.find((m) => m.unread);
           return firstUnread?.id ?? msgs[0]?.id ?? null;
@@ -152,6 +164,8 @@ export default function InboxClient({ authClientUrl }: Props) {
     setSelectedId(null);
     setDetail(null);
     setMessages([]);
+    setMobileShowReader(false);
+    setMobileMenuOpen(false);
     try {
       await apiFetch("/api/mail/active-account", {
         method: "POST",
@@ -213,6 +227,12 @@ export default function InboxClient({ authClientUrl }: Props) {
     window.location.href = "/login";
   }
 
+  function openCompose() {
+    setComposeDraft({ mode: "new", to: "", subject: "", body: "" });
+    setComposeOpen(true);
+    setMobileMenuOpen(false);
+  }
+
   useEffect(() => {
     void loadMe();
   }, [loadMe]);
@@ -248,13 +268,26 @@ export default function InboxClient({ authClientUrl }: Props) {
         if (!cancelled) setDetailBusy(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [selectedId, provider, providerConnected]);
 
   const unreadCount = useMemo(
     () => messages.filter((m) => m.unread).length,
     [messages],
   );
+
+  const shellClass = [
+    "mail-shell",
+    mobileShowReader ? "reader-open" : "",
+    mobileMenuOpen ? "menu-open" : "",
+    navExpanded ? "nav-expanded" : "nav-collapsed",
+    listExpanded ? "list-expanded" : "list-collapsed",
+    hoverPane ? `hover-${hoverPane}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   if (meError && !me) {
     return (
@@ -272,82 +305,181 @@ export default function InboxClient({ authClientUrl }: Props) {
     );
   }
 
+  const accountNav = (
+    <>
+      <p className="mail-nav-label">Gmail</p>
+      {me.gmailAccounts.map((acct) => (
+        <button
+          key={acct.grantId}
+          type="button"
+          className={`folder account${
+            provider === "google" && me.activeGrantId === acct.grantId ? " active" : ""
+          }`}
+          title={acct.email}
+          onClick={() => void switchAccount(acct.grantId, "google")}
+        >
+          <span className="account-email">{acct.email}</span>
+        </button>
+      ))}
+      <a
+        href={authClientUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="folder account-add"
+      >
+        <span>+ Add Gmail</span>
+      </a>
+
+      <p className="mail-nav-label">Outlook</p>
+      {me.outlookAccounts.map((acct) => (
+        <button
+          key={acct.grantId}
+          type="button"
+          className={`folder account${
+            provider === "microsoft" && me.activeGrantId === acct.grantId ? " active" : ""
+          }`}
+          title={acct.email}
+          onClick={() => void switchAccount(acct.grantId, "microsoft")}
+        >
+          <span className="account-email">{acct.email}</span>
+        </button>
+      ))}
+      <a
+        href={authClientUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="folder account-add"
+      >
+        <span>+ Add Outlook</span>
+      </a>
+
+      <p className="mail-nav-label">Folder</p>
+      <button type="button" className="folder active">
+        <span>Inbox</span>
+        {unreadCount > 0 ? <em>{unreadCount}</em> : null}
+      </button>
+    </>
+  );
+
   return (
-    <div className={`mail-shell${mobileShowReader ? " reader-open" : ""}`}>
-      {/* Sidebar */}
-      <aside className="mail-nav">
+    <div className={shellClass}>
+      {mobileMenuOpen ? (
+        <button
+          type="button"
+          className="mail-drawer-scrim"
+          aria-label="Close menu"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      ) : null}
+
+      {/* Mobile top bar */}
+      <header className="mail-mobile-bar">
+        {mobileShowReader ? (
+          <>
+            <button
+              type="button"
+              className="mail-icon-btn"
+              aria-label="Back to inbox"
+              onClick={() => setMobileShowReader(false)}
+            >
+              ←
+            </button>
+            <div className="mail-mobile-bar-actions">
+              <button
+                type="button"
+                className="mail-icon-btn"
+                disabled={!detail?.fromEmail || actionBusy}
+                onClick={() => {
+                  if (!detail) return;
+                  setComposeDraft(buildReplyDraft(detail, provider));
+                  setComposeOpen(true);
+                }}
+              >
+                Reply
+              </button>
+              <button
+                type="button"
+                className="mail-icon-btn"
+                disabled={actionBusy}
+                onClick={() => void runAction("archive")}
+              >
+                Archive
+              </button>
+              <button
+                type="button"
+                className="mail-icon-btn danger"
+                disabled={actionBusy}
+                onClick={() => {
+                  if (window.confirm("Move this message to Trash?")) {
+                    void runAction("trash");
+                  }
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="mail-icon-btn"
+              aria-label="Open menu"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              ☰
+            </button>
+            <div className="mail-mobile-title">
+              <strong>Inbox</strong>
+              {unreadCount > 0 ? <span>{unreadCount}</span> : null}
+            </div>
+            <button
+              type="button"
+              className="mail-icon-btn"
+              disabled={listBusy || !providerConnected}
+              onClick={() => void loadList({ preferUnread: true })}
+              aria-label="Refresh"
+            >
+              ↻
+            </button>
+          </>
+        )}
+      </header>
+
+      {/* Sidebar / drawer */}
+      <aside
+        className="mail-nav"
+        onMouseEnter={() => setHoverPane("nav")}
+        onMouseLeave={() => setHoverPane((p) => (p === "nav" ? null : p))}
+      >
         <div className="mail-nav-brand">
           <span className="brand">Benchute</span>
-          <span className="avatar-fallback" title={me.email}>
-            {initials(me.name ?? me.email)}
-          </span>
+          <div className="mail-nav-brand-actions">
+            <button
+              type="button"
+              className="mail-pane-toggle desktop-only"
+              title={navExpanded ? "Collapse sidebar" : "Expand sidebar"}
+              onClick={() => setNavExpanded((v) => !v)}
+            >
+              {navExpanded ? "⟨" : "⟩"}
+            </button>
+            <span className="avatar-fallback" title={me.email}>
+              {initials(me.name ?? me.email)}
+            </span>
+          </div>
         </div>
 
-        <nav className="mail-folders">
+        <div className="mail-nav-scroll">
           <button
             type="button"
             className="compose-launch"
             disabled={!providerConnected}
-            onClick={() => {
-              setComposeDraft({ mode: "new", to: "", subject: "", body: "" });
-              setComposeOpen(true);
-            }}
+            onClick={openCompose}
           >
             Compose
           </button>
-
-          <p className="mail-nav-label">Gmail accounts</p>
-          {me.gmailAccounts.map((acct) => (
-            <button
-              key={acct.grantId}
-              type="button"
-              className={`folder account${
-                provider === "google" && me.activeGrantId === acct.grantId ? " active" : ""
-              }`}
-              title={acct.email}
-              onClick={() => void switchAccount(acct.grantId, "google")}
-            >
-              <span className="account-email">{acct.email}</span>
-            </button>
-          ))}
-          <a
-            href={authClientUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="folder account-add"
-          >
-            <span>+ Add Gmail</span>
-          </a>
-
-          <p className="mail-nav-label">Outlook accounts</p>
-          {me.outlookAccounts.map((acct) => (
-            <button
-              key={acct.grantId}
-              type="button"
-              className={`folder account${
-                provider === "microsoft" && me.activeGrantId === acct.grantId ? " active" : ""
-              }`}
-              title={acct.email}
-              onClick={() => void switchAccount(acct.grantId, "microsoft")}
-            >
-              <span className="account-email">{acct.email}</span>
-            </button>
-          ))}
-          <a
-            href={authClientUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="folder account-add"
-          >
-            <span>+ Add Outlook</span>
-          </a>
-
-          <p className="mail-nav-label">Folder</p>
-          <button type="button" className="folder active">
-            <span>Inbox</span>
-            {unreadCount > 0 ? <em>{unreadCount}</em> : null}
-          </button>
-        </nav>
+          <nav className="mail-folders">{accountNav}</nav>
+        </div>
 
         <div className="mail-nav-footer">
           <button
@@ -372,11 +504,42 @@ export default function InboxClient({ authClientUrl }: Props) {
       </aside>
 
       {/* Message list */}
-      <section className="mail-list-pane">
+      <section
+        className="mail-list-pane"
+        onMouseEnter={() => setHoverPane("list")}
+        onMouseLeave={() => setHoverPane((p) => (p === "list" ? null : p))}
+      >
+        <div className="mail-list-toolbar">
+          <form
+            className="mail-search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setSearch(query.trim());
+              setMobileShowReader(false);
+            }}
+          >
+            <input
+              type="search"
+              placeholder="Search mail"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search mail"
+            />
+          </form>
+          <button
+            type="button"
+            className="mail-pane-toggle desktop-only"
+            title={listExpanded ? "Narrow list" : "Widen list"}
+            onClick={() => setListExpanded((v) => !v)}
+          >
+            {listExpanded ? "⇔" : "⇔"}
+          </button>
+        </div>
+
         {!providerConnected ? (
-          <div className="mail-boot" style={{ minHeight: "60vh" }}>
-            <h1>{provider === "microsoft" ? "Connect Outlook" : "Connect Gmail"}</h1>
-            <p className="lede">
+          <div className="mail-empty-pane">
+            <h2>{provider === "microsoft" ? "Connect Outlook" : "Connect Gmail"}</h2>
+            <p>
               {provider === "microsoft"
                 ? "Link Microsoft to read and send Outlook mail."
                 : "Link Google to use Gmail here."}
@@ -386,35 +549,17 @@ export default function InboxClient({ authClientUrl }: Props) {
               target="_blank"
               rel="noopener noreferrer"
               className="btn primary"
-              style={{ display: "inline-flex", marginTop: "1.5rem" }}
             >
-              {provider === "microsoft" ? "Connect via Benchute Auth" : "Connect via Benchute Auth"}
+              Connect via Benchute Auth
             </a>
           </div>
         ) : (
           <>
-            <form
-              className="mail-search"
-              onSubmit={(e) => {
-                e.preventDefault();
-                setSearch(query.trim());
-                setMobileShowReader(false);
-              }}
-            >
-              <input
-                type="search"
-                placeholder="Search mail"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                aria-label="Search mail"
-              />
-            </form>
-
-            {error && (
+            {error ? (
               <div className="error-box mail-error">
                 <p>{error}</p>
               </div>
-            )}
+            ) : null}
 
             <div className="mail-list" role="listbox" aria-label="Messages">
               {listBusy && <p className="mail-list-status">Loading…</p>}
@@ -452,15 +597,11 @@ export default function InboxClient({ authClientUrl }: Props) {
       </section>
 
       {/* Message reader */}
-      <section className="mail-reader">
-        <button
-          type="button"
-          className="mail-back"
-          onClick={() => setMobileShowReader(false)}
-        >
-          ← Inbox
-        </button>
-
+      <section
+        className="mail-reader"
+        onMouseEnter={() => setHoverPane("reader")}
+        onMouseLeave={() => setHoverPane((p) => (p === "reader" ? null : p))}
+      >
         {!providerConnected && (
           <div className="mail-empty-reader">
             <p>Connect a mailbox to read mail</p>
@@ -482,7 +623,7 @@ export default function InboxClient({ authClientUrl }: Props) {
         {providerConnected && selectedId && !detailBusy && detail && (
           <article className="mail-article">
             <header className="mail-article-head">
-              <div className="mail-article-actions">
+              <div className="mail-article-actions desktop-only">
                 <button
                   type="button"
                   className="btn primary"
@@ -554,19 +695,32 @@ export default function InboxClient({ authClientUrl }: Props) {
               </div>
             </header>
 
-            {detail.bodyHtml ? (
-              <iframe
-                className="mail-iframe"
-                title={detail.subject}
-                sandbox=""
-                srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"/><base target="_blank" rel="noopener"/><style>body{margin:0;padding:8px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.55;color:#1a1a1a;word-wrap:break-word;}img{max-width:100%;height:auto;}a{color:#0b57d0;}</style></head><body>${detail.bodyHtml}</body></html>`}
-              />
-            ) : (
-              <pre className="mail-plaintext">{detail.bodyText ?? detail.snippet}</pre>
-            )}
+            <div className="mail-article-body">
+              {detail.bodyHtml ? (
+                <iframe
+                  className="mail-iframe"
+                  title={detail.subject}
+                  sandbox=""
+                  srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"/><base target="_blank" rel="noopener"/><style>body{margin:0;padding:12px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;color:#202124;word-wrap:break-word;}img{max-width:100%;height:auto;}a{color:#1a73e8;}</style></head><body>${detail.bodyHtml}</body></html>`}
+                />
+              ) : (
+                <pre className="mail-plaintext">{detail.bodyText ?? detail.snippet}</pre>
+              )}
+            </div>
           </article>
         )}
       </section>
+
+      {providerConnected && !mobileShowReader ? (
+        <button
+          type="button"
+          className="mail-fab"
+          aria-label="Compose"
+          onClick={openCompose}
+        >
+          ✎
+        </button>
+      ) : null}
 
       <ComposePanel
         open={composeOpen}
