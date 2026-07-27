@@ -117,7 +117,7 @@ export default function InboxClient({ authClientUrl }: Props) {
       setListBusy(true);
       setError(null);
       try {
-        const params = new URLSearchParams({ provider });
+        const params = new URLSearchParams({ provider, maxResults: "50" });
         if (search) params.set("q", search);
         const res = await apiFetch<{ messages: MailListItem[] }>(
           `/api/mail/messages?${params}`,

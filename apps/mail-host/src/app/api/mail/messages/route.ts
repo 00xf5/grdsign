@@ -40,15 +40,18 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const gmailQ = q?.trim() ? q : "in:inbox";
+    const gmailQ = q?.trim() ? q.trim() : undefined;
     const list = await gmailClient.listMessages(userId, {
-      q: gmailQ,
+      // Prefer INBOX label for the default view (not a search query).
+      // Archived/All Mail are excluded by design — same as Gmail's Inbox tab.
+      ...(gmailQ ? { q: gmailQ } : { labelIds: ["INBOX"] }),
       maxResults,
       pageToken,
     });
 
-    const details = await Promise.all(
-      (list.messages ?? []).slice(0, maxResults).map(async (m) => {
+    const ids = (list.messages ?? []).slice(0, maxResults);
+    const settled = await Promise.allSettled(
+      ids.map(async (m) => {
         const full = await gmailClient.getMessage(userId, m.id, "metadata");
         const headers = headerMap(full.payload?.headers);
         const fromRaw = headers.from ?? null;
@@ -67,15 +70,26 @@ export async function GET(req: NextRequest) {
           unread: labels.includes("UNREAD"),
           starred: labels.includes("STARRED"),
           labelIds: labels,
+          internalDate: full.internalDate ? Number(full.internalDate) : 0,
         };
       }),
     );
+
+    const details = settled
+      .flatMap((r) => (r.status === "fulfilled" ? [r.value] : []))
+      .sort((a, b) => b.internalDate - a.internalDate)
+      .map(({ internalDate: _ignored, ...rest }) => rest);
+
+    const failed = settled.filter((r) => r.status === "rejected").length;
+    if (failed > 0) {
+      console.warn("gmail_metadata_partial_fail", { ok: details.length, failed });
+    }
 
     return NextResponse.json({
       folder: "inbox",
       messages: details,
       nextPageToken: list.nextPageToken ?? null,
-      resultSizeEstimate: list.resultSizeEstimate ?? null,
+      resultSizeEstimate: list.resultSizeEstimate ?? details.length,
     });
   } catch (err) {
     if (err instanceof AuthGrantError) {
