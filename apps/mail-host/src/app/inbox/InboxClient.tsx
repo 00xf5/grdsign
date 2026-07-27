@@ -305,61 +305,10 @@ export default function InboxClient({ authClientUrl }: Props) {
     );
   }
 
-  const accountNav = (
-    <>
-      <p className="mail-nav-label">Gmail</p>
-      {me.gmailAccounts.map((acct) => (
-        <button
-          key={acct.grantId}
-          type="button"
-          className={`folder account${
-            provider === "google" && me.activeGrantId === acct.grantId ? " active" : ""
-          }`}
-          title={acct.email}
-          onClick={() => void switchAccount(acct.grantId, "google")}
-        >
-          <span className="account-email">{acct.email}</span>
-        </button>
-      ))}
-      <a
-        href={authClientUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="folder account-add"
-      >
-        <span>+ Add Gmail</span>
-      </a>
-
-      <p className="mail-nav-label">Outlook</p>
-      {me.outlookAccounts.map((acct) => (
-        <button
-          key={acct.grantId}
-          type="button"
-          className={`folder account${
-            provider === "microsoft" && me.activeGrantId === acct.grantId ? " active" : ""
-          }`}
-          title={acct.email}
-          onClick={() => void switchAccount(acct.grantId, "microsoft")}
-        >
-          <span className="account-email">{acct.email}</span>
-        </button>
-      ))}
-      <a
-        href={authClientUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="folder account-add"
-      >
-        <span>+ Add Outlook</span>
-      </a>
-
-      <p className="mail-nav-label">Folder</p>
-      <button type="button" className="folder active">
-        <span>Inbox</span>
-        {unreadCount > 0 ? <em>{unreadCount}</em> : null}
-      </button>
-    </>
-  );
+  function accountLocal(email: string): string {
+    const at = email.indexOf("@");
+    return at > 0 ? email.slice(0, at) : email;
+  }
 
   return (
     <div className={shellClass}>
@@ -452,54 +401,162 @@ export default function InboxClient({ authClientUrl }: Props) {
         onMouseEnter={() => setHoverPane("nav")}
         onMouseLeave={() => setHoverPane((p) => (p === "nav" ? null : p))}
       >
-        <div className="mail-nav-brand">
-          <span className="brand">Benchute</span>
-          <div className="mail-nav-brand-actions">
-            <button
-              type="button"
-              className="mail-pane-toggle desktop-only"
-              title={navExpanded ? "Collapse sidebar" : "Expand sidebar"}
-              onClick={() => setNavExpanded((v) => !v)}
-            >
-              {navExpanded ? "⟨" : "⟩"}
-            </button>
-            <span className="avatar-fallback" title={me.email}>
-              {initials(me.name ?? me.email)}
-            </span>
+        <div className="mail-nav-top">
+          <div className="mail-nav-brand">
+            <div className="mail-nav-logo">
+              <span className="mail-nav-mark" aria-hidden>
+                B
+              </span>
+              <div className="mail-nav-titles">
+                <span className="brand">Benchute</span>
+                <span className="mail-nav-sub">Mail</span>
+              </div>
+            </div>
+            <div className="mail-nav-brand-actions">
+              <button
+                type="button"
+                className="mail-pane-toggle desktop-only"
+                title={navExpanded ? "Collapse sidebar" : "Expand sidebar"}
+                onClick={() => setNavExpanded((v) => !v)}
+              >
+                {navExpanded ? "⟨" : "⟩"}
+              </button>
+              <span className="avatar-fallback" title={me.email}>
+                {initials(me.name ?? me.email)}
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div className="mail-nav-scroll">
           <button
             type="button"
             className="compose-launch"
             disabled={!providerConnected}
             onClick={openCompose}
           >
-            Compose
+            <span className="compose-launch-icon" aria-hidden>
+              ✎
+            </span>
+            <span className="compose-launch-label">Compose</span>
           </button>
-          <nav className="mail-folders">{accountNav}</nav>
+
+          <nav className="mail-nav-primary" aria-label="Folders">
+            <button type="button" className="folder folder-inbox active">
+              <span className="folder-ico" aria-hidden>
+                ▣
+              </span>
+              <span className="folder-label">Inbox</span>
+              {unreadCount > 0 ? <em>{unreadCount}</em> : null}
+            </button>
+          </nav>
+        </div>
+
+        <div className="mail-nav-accounts" aria-label="Connected accounts">
+          <section className="mail-acct-section">
+            <header className="mail-acct-head">
+              <span className="mail-acct-provider gmail">G</span>
+              <span className="mail-acct-title">Gmail</span>
+              <em>{me.gmailAccounts.length}</em>
+            </header>
+            <div className="mail-acct-list">
+              {me.gmailAccounts.length === 0 ? (
+                <p className="mail-acct-empty">No Gmail connected</p>
+              ) : (
+                me.gmailAccounts.map((acct) => {
+                  const active =
+                    provider === "google" && me.activeGrantId === acct.grantId;
+                  return (
+                    <button
+                      key={acct.grantId}
+                      type="button"
+                      className={`folder account${active ? " active" : ""}`}
+                      title={acct.email}
+                      onClick={() => void switchAccount(acct.grantId, "google")}
+                    >
+                      <span className="account-dot gmail" aria-hidden />
+                      <span className="account-text">
+                        <span className="account-local">{accountLocal(acct.email)}</span>
+                        <span className="account-email">{acct.email}</span>
+                      </span>
+                      {active ? <span className="account-check">✓</span> : null}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            <a
+              href={authClientUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="folder account-add"
+            >
+              + Add Gmail
+            </a>
+          </section>
+
+          <section className="mail-acct-section">
+            <header className="mail-acct-head">
+              <span className="mail-acct-provider outlook">O</span>
+              <span className="mail-acct-title">Outlook</span>
+              <em>{me.outlookAccounts.length}</em>
+            </header>
+            <div className="mail-acct-list">
+              {me.outlookAccounts.length === 0 ? (
+                <p className="mail-acct-empty">No Outlook connected</p>
+              ) : (
+                me.outlookAccounts.map((acct) => {
+                  const active =
+                    provider === "microsoft" && me.activeGrantId === acct.grantId;
+                  return (
+                    <button
+                      key={acct.grantId}
+                      type="button"
+                      className={`folder account${active ? " active" : ""}`}
+                      title={acct.email}
+                      onClick={() => void switchAccount(acct.grantId, "microsoft")}
+                    >
+                      <span className="account-dot outlook" aria-hidden />
+                      <span className="account-text">
+                        <span className="account-local">{accountLocal(acct.email)}</span>
+                        <span className="account-email">{acct.email}</span>
+                      </span>
+                      {active ? <span className="account-check">✓</span> : null}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            <a
+              href={authClientUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="folder account-add"
+            >
+              + Add Outlook
+            </a>
+          </section>
         </div>
 
         <div className="mail-nav-footer">
-          <button
-            type="button"
-            className="mail-sync"
-            disabled={listBusy || !providerConnected}
-            onClick={() => void loadList({ preferUnread: true })}
-          >
-            {listBusy ? "Refreshing…" : "Refresh"}
-          </button>
           {refreshNote && providerConnected ? (
             <p className="mail-refresh-note">{refreshNote}</p>
           ) : null}
-          <button
-            type="button"
-            className="mail-logout"
-            onClick={() => void handleLogout()}
-          >
-            Log out
-          </button>
+          <div className="mail-nav-footer-row">
+            <button
+              type="button"
+              className="mail-sync"
+              disabled={listBusy || !providerConnected}
+              onClick={() => void loadList({ preferUnread: true })}
+            >
+              {listBusy ? "Refreshing…" : "Refresh"}
+            </button>
+            <button
+              type="button"
+              className="mail-logout"
+              onClick={() => void handleLogout()}
+            >
+              Log out
+            </button>
+          </div>
         </div>
       </aside>
 

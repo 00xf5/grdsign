@@ -330,7 +330,11 @@ body {
 /* ── Nav (left sidebar) ─────────────────────────────── */
 
 .mail-nav {
-  background: var(--mail-nav, #163528);
+  --nav-surface: #122c22;
+  --nav-surface-2: #18362b;
+  --nav-line: rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, #1a3d30 0%, var(--nav-surface) 42%, #0e231c 100%);
   color: var(--mail-nav-ink, #e8f0ea);
   display: flex;
   flex-direction: column;
@@ -338,8 +342,17 @@ body {
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  border-right: 1px solid #0f241c;
+  border-right: 1px solid #0b1c16;
   z-index: 3;
+}
+
+.mail-nav-top {
+  flex-shrink: 0;
+  padding: 0.85rem 0.75rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  border-bottom: 1px solid var(--nav-line);
 }
 
 .mail-nav-brand {
@@ -347,8 +360,35 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.9rem 0.75rem 0.65rem;
+  padding: 0 0.1rem;
+}
+
+.mail-nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.mail-nav-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #4ade80, #16a34a);
+  color: #052e1a;
+  font-weight: 800;
+  font-size: 0.85rem;
   flex-shrink: 0;
+  letter-spacing: -0.03em;
+}
+
+.mail-nav-titles {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
 }
 
 .mail-nav-brand-actions {
@@ -358,51 +398,55 @@ body {
 }
 
 .mail-nav .brand {
-  font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
-  letter-spacing: 0.08em;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  font-size: 0.75rem;
-  color: #7ddea8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #d8f5e6;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.mail-shell.nav-collapsed .mail-nav .brand,
-.mail-shell.nav-collapsed .mail-nav-label,
-.mail-shell.nav-collapsed .account-email,
+.mail-nav-sub {
+  font-size: 0.68rem;
+  color: rgba(232, 240, 234, 0.45);
+  letter-spacing: 0.02em;
+}
+
+.mail-shell.nav-collapsed .mail-nav-titles,
+.mail-shell.nav-collapsed .compose-launch-label,
+.mail-shell.nav-collapsed .folder-label,
+.mail-shell.nav-collapsed .mail-acct-title,
+.mail-shell.nav-collapsed .account-text,
+.mail-shell.nav-collapsed .account-check,
+.mail-shell.nav-collapsed .mail-acct-empty,
 .mail-shell.nav-collapsed .mail-refresh-note,
-.mail-shell.nav-collapsed .compose-launch {
+.mail-shell.nav-collapsed .account-add,
+.mail-shell.nav-collapsed .mail-acct-head em,
+.mail-shell.nav-collapsed .folder em {
   display: none;
 }
 
-.mail-shell.nav-collapsed.hover-nav .mail-nav .brand,
-.mail-shell.nav-collapsed.hover-nav .mail-nav-label,
-.mail-shell.nav-collapsed.hover-nav .account-email,
+.mail-shell.nav-collapsed.hover-nav .mail-nav-titles,
+.mail-shell.nav-collapsed.hover-nav .compose-launch-label,
+.mail-shell.nav-collapsed.hover-nav .folder-label,
+.mail-shell.nav-collapsed.hover-nav .mail-acct-title,
+.mail-shell.nav-collapsed.hover-nav .account-text,
+.mail-shell.nav-collapsed.hover-nav .account-check,
+.mail-shell.nav-collapsed.hover-nav .mail-acct-empty,
 .mail-shell.nav-collapsed.hover-nav .mail-refresh-note,
-.mail-shell.nav-collapsed.hover-nav .compose-launch {
+.mail-shell.nav-collapsed.hover-nav .account-add,
+.mail-shell.nav-collapsed.hover-nav .mail-acct-head em,
+.mail-shell.nav-collapsed.hover-nav .folder em {
   display: revert;
 }
 
-.mail-shell.nav-collapsed.hover-nav .folder {
-  justify-content: space-between;
-  padding: 0.55rem 0.7rem;
-}
-
-.mail-shell.nav-collapsed.hover-nav .folder em {
-  display: inline;
-}
-
-.mail-shell.nav-collapsed.hover-nav .mail-sync,
-.mail-shell.nav-collapsed.hover-nav .mail-logout {
-  font-size: 0.85rem;
-  padding: 0.65rem 0.75rem;
-}
-
-.mail-shell.nav-collapsed.hover-nav .mail-sync::before,
-.mail-shell.nav-collapsed.hover-nav .mail-logout::before {
-  content: none;
+.mail-shell.nav-collapsed .compose-launch {
+  justify-content: center;
+  padding: 0.7rem;
 }
 
 .mail-shell.nav-collapsed .folder {
@@ -410,14 +454,19 @@ body {
   padding: 0.65rem;
 }
 
-.mail-shell.nav-collapsed .folder em {
-  display: none;
+.mail-shell.nav-collapsed .folder.account {
+  justify-content: center;
+}
+
+.mail-shell.nav-collapsed .mail-nav-footer-row {
+  flex-direction: column;
 }
 
 .mail-shell.nav-collapsed .mail-sync,
 .mail-shell.nav-collapsed .mail-logout {
   font-size: 0;
   padding: 0.65rem;
+  text-align: center;
 }
 
 .mail-shell.nav-collapsed .mail-sync::before {
@@ -428,6 +477,27 @@ body {
 .mail-shell.nav-collapsed .mail-logout::before {
   content: "⎋";
   font-size: 0.95rem;
+}
+
+.mail-shell.nav-collapsed.hover-nav .compose-launch {
+  justify-content: center;
+  padding: 0.7rem 0.9rem;
+}
+
+.mail-shell.nav-collapsed.hover-nav .folder {
+  justify-content: flex-start;
+  padding: 0.45rem 0.55rem;
+}
+
+.mail-shell.nav-collapsed.hover-nav .mail-sync,
+.mail-shell.nav-collapsed.hover-nav .mail-logout {
+  font-size: 0.78rem;
+  padding: 0.55rem 0.6rem;
+}
+
+.mail-shell.nav-collapsed.hover-nav .mail-sync::before,
+.mail-shell.nav-collapsed.hover-nav .mail-logout::before {
+  content: none;
 }
 
 .mail-nav-account img,
@@ -444,19 +514,7 @@ body {
   flex-shrink: 0;
 }
 
-.mail-nav-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding: 0 0.65rem 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  overscroll-behavior: contain;
-}
-
-.mail-folders {
+.mail-nav-primary {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
@@ -465,16 +523,15 @@ body {
 .folder {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.55rem;
   width: 100%;
   border: 0;
   background: transparent;
   color: inherit;
   font: inherit;
   text-align: left;
-  padding: 0.55rem 0.7rem;
-  border-radius: 0.45rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.5rem;
   cursor: pointer;
   text-decoration: none;
 }
@@ -484,59 +541,210 @@ body {
 }
 
 .folder.active {
-  background: rgba(61, 207, 142, 0.18);
-  color: #b8f5d4;
+  background: rgba(61, 207, 142, 0.16);
+  color: #c9f8df;
 }
 
-.folder em {
+.folder-ico {
+  width: 1.1rem;
+  text-align: center;
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+
+.folder-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.folder em,
+.mail-acct-head em {
   font-style: normal;
-  font-size: 0.75rem;
-  background: rgba(255, 255, 255, 0.12);
-  padding: 0.1rem 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.1rem 0.4rem;
   border-radius: 999px;
+  margin-left: auto;
+  color: rgba(232, 240, 234, 0.85);
 }
 
-.mail-nav-label {
-  margin: 0.85rem 0.35rem 0.25rem;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
+/* Split account panes — Gmail + Outlook always both visible */
+.mail-nav-accounts {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.55rem 0.65rem;
+  overflow: hidden;
+}
+
+.mail-acct-section {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--nav-line);
+  border-radius: 0.65rem;
+  overflow: hidden;
+}
+
+.mail-acct-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.6rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--nav-line);
+}
+
+.mail-acct-provider {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.mail-acct-provider.gmail {
+  background: #ea4335;
+  color: #fff;
+}
+
+.mail-acct-provider.outlook {
+  background: #0078d4;
+  color: #fff;
+}
+
+.mail-acct-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(232, 240, 234, 0.45);
+  color: rgba(232, 240, 234, 0.72);
+}
+
+.mail-acct-list {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0.3rem;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.mail-acct-empty {
+  margin: 0;
+  padding: 0.65rem 0.5rem;
+  font-size: 0.75rem;
+  color: rgba(232, 240, 234, 0.4);
+}
+
+.folder.account {
+  align-items: flex-start;
+  padding: 0.45rem 0.5rem;
+  gap: 0.45rem;
+}
+
+.account-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-top: 0.4rem;
+  flex-shrink: 0;
+}
+
+.account-dot.gmail {
+  background: #f87171;
+}
+
+.account-dot.outlook {
+  background: #60a5fa;
+}
+
+.account-text {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.account-local {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #eef7f1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .folder.account .account-email {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.82rem;
+  font-size: 0.68rem;
+  color: rgba(232, 240, 234, 0.45);
+}
+
+.account-check {
+  font-size: 0.72rem;
+  color: #86efac;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
 }
 
 .folder.account-add {
+  flex-shrink: 0;
+  justify-content: center;
   color: #9ec9b3;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
+  border-top: 1px solid var(--nav-line);
+  border-radius: 0;
+  padding: 0.5rem 0.6rem;
+}
+
+.folder.account-add:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #d5f0e2;
 }
 
 .mail-nav-footer {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  padding: 0.65rem 0.65rem 0.85rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 0.4rem;
+  padding: 0.6rem 0.65rem 0.8rem;
+  border-top: 1px solid var(--nav-line);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.mail-nav-footer-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
 }
 
 .mail-logout {
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   background: transparent;
   color: #d5e8dc;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 500;
-  padding: 0.65rem 0.75rem;
+  padding: 0.55rem 0.5rem;
   border-radius: 0.45rem;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
 }
 
 .mail-logout:hover {
@@ -545,10 +753,11 @@ body {
 }
 
 .mail-refresh-note {
-  margin: 0.15rem 0.25rem 0;
-  font-size: 0.72rem;
-  color: rgba(232, 240, 234, 0.55);
+  margin: 0;
+  font-size: 0.68rem;
+  color: rgba(232, 240, 234, 0.45);
   line-height: 1.3;
+  padding: 0 0.15rem;
 }
 
 .mail-sync {
@@ -557,10 +766,11 @@ body {
   background: rgba(255, 255, 255, 0.08);
   color: inherit;
   font: inherit;
-  padding: 0.65rem 0.75rem;
+  font-size: 0.78rem;
+  padding: 0.55rem 0.5rem;
   border-radius: 0.45rem;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
 }
 
 .mail-sync:disabled {
@@ -896,24 +1106,33 @@ body {
 .compose-launch {
   width: 100%;
   border: 0;
-  background: #3dcf8e;
-  color: #062116;
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+  color: #052e1a;
   font: inherit;
   font-weight: 700;
-  padding: 0.75rem 0.9rem;
-  border-radius: 1.25rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 999px;
   cursor: pointer;
-  margin-bottom: 0.35rem;
-  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.22);
+}
+
+.compose-launch-icon {
+  font-size: 0.95rem;
+  line-height: 1;
 }
 
 .compose-launch:hover:not(:disabled) {
-  filter: brightness(1.05);
+  filter: brightness(1.04);
 }
 
 .compose-launch:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .compose-backdrop {
@@ -1130,29 +1349,44 @@ body {
     box-shadow: 8px 0 28px rgba(0, 0, 0, 0.2);
   }
 
-  .mail-shell.nav-collapsed .mail-nav .brand,
-  .mail-shell.nav-collapsed .mail-nav-label,
-  .mail-shell.nav-collapsed .account-email,
+  .mail-shell.nav-collapsed .mail-nav-titles,
+  .mail-shell.nav-collapsed .compose-launch-label,
+  .mail-shell.nav-collapsed .folder-label,
+  .mail-shell.nav-collapsed .mail-acct-title,
+  .mail-shell.nav-collapsed .account-text,
+  .mail-shell.nav-collapsed .account-check,
+  .mail-shell.nav-collapsed .mail-acct-empty,
   .mail-shell.nav-collapsed .mail-refresh-note,
-  .mail-shell.nav-collapsed .compose-launch,
+  .mail-shell.nav-collapsed .account-add,
+  .mail-shell.nav-collapsed .mail-acct-head em,
   .mail-shell.nav-collapsed .folder em {
     display: revert;
   }
 
+  .mail-shell.nav-collapsed .compose-launch {
+    justify-content: center;
+    padding: 0.7rem 0.9rem;
+  }
+
   .mail-shell.nav-collapsed .folder {
-    justify-content: space-between;
-    padding: 0.55rem 0.7rem;
+    justify-content: flex-start;
+    padding: 0.45rem 0.55rem;
   }
 
   .mail-shell.nav-collapsed .mail-sync,
   .mail-shell.nav-collapsed .mail-logout {
-    font-size: 0.85rem;
-    padding: 0.65rem 0.75rem;
+    font-size: 0.78rem;
+    padding: 0.55rem 0.5rem;
   }
 
   .mail-shell.nav-collapsed .mail-sync::before,
   .mail-shell.nav-collapsed .mail-logout::before {
     content: none;
+  }
+
+  .mail-shell.nav-collapsed .mail-nav-footer-row {
+    flex-direction: row;
+    display: grid;
   }
 
   .mail-list-pane,
