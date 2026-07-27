@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@benchute/db";
+import { getDb, centralizeGrantsToOwner } from "@benchute/db";
 import { getMailStack } from "@/lib/mail";
 import { getEnv } from "@/lib/env";
 
@@ -34,28 +34,9 @@ export async function POST() {
     }
 
     const db = getDb();
-    const before = await db.execute({
-      sql: `SELECT COUNT(*) AS c FROM oauth_grants
-            WHERE revoked_at IS NULL AND user_id != ?`,
-      args: [ownerId],
-    });
-    const orphanCount = Number(
-      (before.rows[0] as Record<string, unknown> | undefined)?.c ?? 0,
-    );
+    const { moved, revoked } = await centralizeGrantsToOwner(db, ownerId);
 
-    if (orphanCount === 0) {
-      return NextResponse.json({ ok: true, moved: 0, ownerId });
-    }
-
-    const now = new Date().toISOString();
-    await db.execute({
-      sql: `UPDATE oauth_grants
-            SET user_id = ?, updated_at = ?
-            WHERE revoked_at IS NULL AND user_id != ?`,
-      args: [ownerId, now, ownerId],
-    });
-
-    return NextResponse.json({ ok: true, moved: orphanCount, ownerId });
+    return NextResponse.json({ ok: true, moved, revoked, ownerId });
   } catch (err) {
     console.error("adopt_orphans_failed", err instanceof Error ? err.message : err);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });

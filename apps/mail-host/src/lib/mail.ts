@@ -4,6 +4,7 @@ import {
   TursoUserRepository,
   TursoGrantRepository,
   TokenVault,
+  centralizeGrantsToOwner,
   type UserRepository,
   type GrantRepository,
 } from "@benchute/db";
@@ -86,13 +87,7 @@ export function getMailStack(): MailStack {
     }
     if (!ownerId) return;
 
-    const now = new Date().toISOString();
-    await db.execute({
-      sql: `UPDATE oauth_grants
-            SET user_id = ?, updated_at = ?
-            WHERE revoked_at IS NULL AND user_id != ?`,
-      args: [ownerId, now, ownerId],
-    });
+    await centralizeGrantsToOwner(db, ownerId);
   }
 
   async function resolveOwnerUserId(): Promise<string | null> {

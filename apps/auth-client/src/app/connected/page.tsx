@@ -31,11 +31,14 @@ export default async function ConnectedPage({ searchParams }: Props) {
           />
         </svg>
       </div>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
-        {providerLabel} connected!
+      <h1 style={{ fontSize: 24, fontWeight: 600, marginBottom: 12, letterSpacing: "-0.02em" }}>
+        Congratulations
       </h1>
-      <p style={{ color: "#555", marginBottom: 32 }}>
-        Your account is linked. You can now use Benchute to read and send mail.
+      <p style={{ color: "#444", marginBottom: 8, fontSize: 16, lineHeight: 1.5 }}>
+        Your {providerLabel} account has been connected successfully.
+      </p>
+      <p style={{ color: "#666", marginBottom: 32, fontSize: 15, lineHeight: 1.5 }}>
+        You can proceed to Benchute Mail.
       </p>
 
       <a
@@ -52,13 +55,13 @@ export default async function ConnectedPage({ searchParams }: Props) {
           marginBottom: 16,
         }}
       >
-        Go to Benchute Mail
+        Proceed to Mail
       </a>
 
       <br />
       <a
         href="/"
-        style={{ fontSize: 13, color: "#1a73e8" }}
+        style={{ fontSize: 13, color: "#5f6368" }}
       >
         Connect another account
       </a>

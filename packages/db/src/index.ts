@@ -16,6 +16,7 @@ export { TursoUserRepository } from "./users/tursoUserRepository";
 export type { MailProvider, OAuthGrant, SaveGrantInput } from "./grants/types";
 export type { GrantRepository } from "./grants/repository";
 export { TursoGrantRepository } from "./grants/tursoGrantRepository";
+export { centralizeGrantsToOwner } from "./grants/centralize";
 
 // Token vault
 export { TokenVault } from "./vault";
